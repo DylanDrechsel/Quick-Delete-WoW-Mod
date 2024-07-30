@@ -24,8 +24,20 @@ local function OnItemClick(self, button)
     -- Check if the Alt key is pressed and the left mouse button is clicked
     if IsAltKeyDown() and button == "LeftButton" then
         -- Get the bagID and slotID of the clicked item
-        local bagID = self:GetParent():GetID()
-        local slotID = self:GetID()
+        local bagID, slotID
+
+        if self:GetParent() and self:GetParent():GetID() then
+            bagID = self:GetParent():GetID()
+            slotID = self:GetID()
+        else
+            return -- Exit if bagID or slotID is not found
+        end
+
+        -- Adjust for ElvUI's bag structure
+        if ElvUI then
+            bagID = self:GetParent():GetParent():GetID()
+            slotID = self:GetID()
+        end
 
         -- Get the item link for the clicked slot
         local itemLink = GetContainerItemLink(bagID, slotID)
@@ -34,6 +46,7 @@ local function OnItemClick(self, button)
         if itemLink then
             -- Get item information
             local itemName, _, itemRarity, _, _, _, _, _, _, itemTexture = GetItemInfo(itemLink)
+            
             -- Only confirm for rare (blue) and above items
             if itemRarity >= 2 then
                 ConfirmDelete(itemName, bagID, slotID)
@@ -43,7 +56,7 @@ local function OnItemClick(self, button)
 
                 -- Check if the item is picked up
                 if GetCursorInfo() == "item" then
-                -- Delete the item
+                    -- Delete the item
                     DeleteCursorItem()
 
                     -- Print a confirmation message
@@ -57,18 +70,37 @@ end
 
 -- Hook the click event for all bag slots
 local function HookBagSlots()
-    -- Loop through all the player's bags (0 to 4)
-    for bagID = 0, NUM_BAG_FRAMES do
-        -- Get the number of slots in the current bag
-        local numSlots = GetContainerNumSlots(bagID)
+    if ElvUI then
+        -- ElvUI: Iterate through ElvUI bag slots
+        for bag = 0, NUM_BAG_FRAMES do
+            local elvNumSlots = GetContainerNumSlots(bag)
+            print("Checking ElvUI bag frame: ElvUI_ContainerFrame" .. bag .. " " .. elvNumSlots)
+            for slot = 1, elvNumSlots do
+                local frameNameElv = "ElvUI_ContainerFrame" .. bag .. "Slot" .. slot
+                local button = _G["ContainerFrame"..(bag + 1).."Item"..slot]
+                print(frameNameElv, button)
+                -- ISSUE: Button is being create but OnClick is not working
+                if button then
+                    print("Found button: " .. frameNameElv)
+                    button:HookScript("OnClick", OnItemClick)
+                end
+            end
+        end
+    else
+        -- Default Blizzard UI: Iterate through default bag slots
+        for bagID = 0, NUM_BAG_FRAMES do
+            -- Get the number of slots in the current bag
+            local numSlots = GetContainerNumSlots(bagID)
 
-        -- Loop through each slot in the bag
-        for slotID = 1, numSlots do
-            -- Get the button for the slot
-            local button = _G["ContainerFrame"..(bagID + 1).."Item"..slotID]
-            if button then
-                -- Hook the OnClick event for the slot button
-                button:HookScript("OnClick", OnItemClick)
+            -- Loop through each slot in the bag
+            for slotID = 1, numSlots do
+                local frameName = "BlizzardUI_ContainerFrame" .. bagID .. "Slot" .. slotID
+                -- Get the button for the slot
+                local button = _G["ContainerFrame"..(bagID + 1).."Item"..slotID]
+                if button then
+                    -- Hook the OnClick event for the slot button
+                    button:HookScript("OnClick", OnItemClick)
+                end
             end
         end
     end

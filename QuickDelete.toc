@@ -1,0 +1,7 @@
+## Interface: 11302
+## Title: QuickDelete
+## Notes: Quickly delete items with Alt + Left Click
+## Author: YourName
+## Version: 1.0
+
+QuickDelete.lua
